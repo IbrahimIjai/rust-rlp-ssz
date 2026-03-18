@@ -2,5 +2,14 @@
 name = "eth-rlp-lib"
 version = "0.1.0"
 edition = "2024"
+description = "RLP (Recursive Length Prefix) encoding and decoding — Ethereum's serialization format"
+license = "MIT"
 
 [dependencies]
+
+[dev-dependencies]
+hex = "0.4"
+
+[lib]
+name = "rlp"
+path = "src/lib.rs"

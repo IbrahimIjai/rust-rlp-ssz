@@ -11,6 +11,16 @@ fn encode_single_zero_byte() {
 }
 
 #[test]
+fn encode_bool_false() {
+    assert_eq!(false.rlp_encode(), vec![0x80]);
+}
+
+#[test]
+fn encode_bool_true() {
+    assert_eq!(true.rlp_encode(), vec![0x01]);
+}
+
+#[test]
 fn encode_single_byte_below_0x80() {
     assert_eq!(encode(&RlpItem::Bytes(vec![0x7f])), vec![0x7f]);
 }

@@ -71,6 +71,16 @@ impl Encodable for usize {
     }
 }
 
+impl Encodable for bool {
+    fn to_rlp_item(&self) -> RlpItem {
+        if *self {
+            RlpItem::Bytes(vec![0x01])
+        } else {
+            RlpItem::Bytes(vec![])
+        }
+    }
+}
+
 impl Encodable for Vec<&str> {
     fn to_rlp_item(&self) -> RlpItem {
         RlpItem::List(self.iter().map(|x| x.to_rlp_item()).collect())
@@ -136,6 +146,16 @@ mod tests {
     #[test]
     fn u64_1024() {
         assert_eq!(1024u64.rlp_encode(), vec![0x82, 0x04, 0x00]);
+    }
+
+    #[test]
+    fn bool_false() {
+        assert_eq!(false.rlp_encode(), vec![0x80]);
+    }
+
+    #[test]
+    fn bool_true() {
+        assert_eq!(true.rlp_encode(), vec![0x01]);
     }
 
     #[test]

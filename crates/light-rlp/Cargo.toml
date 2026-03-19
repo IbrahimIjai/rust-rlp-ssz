@@ -1,5 +1,5 @@
 [package]
-name = "light-rlp"
+name = "rust-light-rlp"
 version = "0.1.0"
 edition = "2024"
 description = "Lightweight RLP encoding and decoding for Ethereum"

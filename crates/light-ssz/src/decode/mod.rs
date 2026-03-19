@@ -6,16 +6,9 @@ pub use composite::*;
 
 use crate::types::SszError;
 
-/// The core SSZ decoding trait.
-///
-/// Implement this for your own types to decode from raw SSZ bytes.
-/// The decoder needs to know the schema — SSZ is NOT self-describing.
 pub trait Decode: Sized {
-    /// Decode from a complete byte slice.
     fn ssz_decode(bytes: &[u8]) -> Result<Self, SszError>;
 }
-
-// --- Blanket impls for primitive types ---
 
 impl Decode for bool {
     fn ssz_decode(bytes: &[u8]) -> Result<Self, SszError> {

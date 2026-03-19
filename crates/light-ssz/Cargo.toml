@@ -1,5 +1,5 @@
 [package]
-name = "light-ssz"
+name = "rust-light-ssz"
 version = "0.1.0"
 edition = "2024"
 description = "Lightweight SSZ encoding and decoding for Ethereum"

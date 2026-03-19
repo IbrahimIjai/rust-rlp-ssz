@@ -1,6 +1,5 @@
-use crate::types::{SszError, BYTES_PER_OFFSET};
 use super::basic::decode_u32;
-
+use crate::types::{SszError, BYTES_PER_OFFSET};
 
 pub fn decode_vector_fixed<T, F>(
     bytes: &[u8],
@@ -18,12 +17,8 @@ where
             element_size,
         });
     }
-    bytes
-        .chunks(element_size)
-        .map(decode_element)
-        .collect()
+    bytes.chunks(element_size).map(decode_element).collect()
 }
-
 
 pub fn decode_list_fixed<T, F>(
     bytes: &[u8],
@@ -44,12 +39,8 @@ where
     if count > max_len {
         return Err(SszError::ListTooLong { len: count, max: max_len });
     }
-    bytes
-        .chunks(element_size)
-        .map(decode_element)
-        .collect()
+    bytes.chunks(element_size).map(decode_element).collect()
 }
-
 
 pub fn decode_list_variable<T, F>(
     bytes: &[u8],
@@ -66,12 +57,11 @@ where
         return Err(SszError::InputTooShort);
     }
 
-    // First offset tells us the size of the offset table
     let first_offset = decode_u32(&bytes[..BYTES_PER_OFFSET])? as usize;
     if first_offset % BYTES_PER_OFFSET != 0 {
         return Err(SszError::InvalidFirstOffset {
             got: first_offset,
-            expected: first_offset, // will validate below
+            expected: first_offset,
         });
     }
 
@@ -80,7 +70,6 @@ where
         return Err(SszError::ListTooLong { len: num_elements, max: max_len });
     }
 
-    // Read all offsets
     let mut offsets = Vec::with_capacity(num_elements);
     for i in 0..num_elements {
         let start = i * BYTES_PER_OFFSET;
@@ -88,14 +77,12 @@ where
         offsets.push(offset);
     }
 
-    // Validate ascending order
     for w in offsets.windows(2) {
         if w[0] >= w[1] {
             return Err(SszError::OffsetsNotAscending);
         }
     }
 
-    // Decode each element using slice between adjacent offsets
     let mut result = Vec::with_capacity(num_elements);
     for (i, &offset) in offsets.iter().enumerate() {
         let end = if i + 1 < offsets.len() { offsets[i + 1] } else { bytes.len() };
@@ -108,7 +95,6 @@ where
     Ok(result)
 }
 
-
 pub fn decode_bitvector(bytes: &[u8], n: usize) -> Result<Vec<bool>, SszError> {
     let expected_bytes = n.div_ceil(8);
     if bytes.len() != expected_bytes {
@@ -118,11 +104,10 @@ pub fn decode_bitvector(bytes: &[u8], n: usize) -> Result<Vec<bool>, SszError> {
         });
     }
 
-    // Validate no extra bits are set in the last byte
     if n % 8 != 0 {
         let last = bytes[bytes.len() - 1];
         let valid_bits = n % 8;
-        let mask = !((1u8 << valid_bits) - 1); // bits above valid_bits
+        let mask = !((1u8 << valid_bits) - 1);
         if last & mask != 0 {
             return Err(SszError::ExtraBitsSet);
         }
@@ -136,19 +121,16 @@ pub fn decode_bitvector(bytes: &[u8], n: usize) -> Result<Vec<bool>, SszError> {
     Ok(bits)
 }
 
-
 pub fn decode_bitlist(bytes: &[u8], max_len: usize) -> Result<Vec<bool>, SszError> {
     if bytes.is_empty() {
         return Err(SszError::MissingSentinelBit);
     }
 
-    // Find the sentinel: the highest set bit in the last non-zero byte
     let last_byte = bytes[bytes.len() - 1];
     if last_byte == 0 {
         return Err(SszError::MissingSentinelBit);
     }
 
-    // Position of highest set bit in last byte
     let highest_bit_in_last = 7 - last_byte.leading_zeros() as usize;
     let sentinel_pos = (bytes.len() - 1) * 8 + highest_bit_in_last;
 
@@ -156,7 +138,6 @@ pub fn decode_bitlist(bytes: &[u8], max_len: usize) -> Result<Vec<bool>, SszErro
         return Err(SszError::ListTooLong { len: sentinel_pos, max: max_len });
     }
 
-    // Extract bits up to (not including) the sentinel
     let mut bits = Vec::with_capacity(sentinel_pos);
     for i in 0..sentinel_pos {
         let byte = bytes[i / 8];
@@ -165,25 +146,24 @@ pub fn decode_bitlist(bytes: &[u8], max_len: usize) -> Result<Vec<bool>, SszErro
     Ok(bits)
 }
 
-
 pub fn decode_container<'a>(
     bytes: &'a [u8],
     field_sizes: &[Option<usize>],
 ) -> Result<Vec<&'a [u8]>, SszError> {
-    // Compute expected fixed-part size
-    let fixed_part_size: usize = field_sizes.iter().map(|s| match s {
-        Some(n) => *n,
-        None => BYTES_PER_OFFSET,
-    }).sum();
+    let fixed_part_size: usize = field_sizes
+        .iter()
+        .map(|s| match s {
+            Some(n) => *n,
+            None => BYTES_PER_OFFSET,
+        })
+        .sum();
 
     if bytes.len() < fixed_part_size {
         return Err(SszError::InputTooShort);
     }
 
-    // Validate first offset (must equal fixed_part_size)
     let has_variable = field_sizes.iter().any(|s| s.is_none());
     if has_variable {
-        // Find first variable field's offset
         let mut cursor = 0;
         let mut first_offset_pos = None;
         for size in field_sizes {
@@ -206,8 +186,7 @@ pub fn decode_container<'a>(
         }
     }
 
-    // Collect offsets for variable fields (in order of appearance)
-    let mut variable_offsets: Vec<usize> = Vec::new();
+    let mut variable_offsets = Vec::new();
     let mut fixed_cursor = 0;
     for size in field_sizes {
         match size {
@@ -219,9 +198,8 @@ pub fn decode_container<'a>(
             }
         }
     }
-    variable_offsets.push(bytes.len()); // sentinel end
+    variable_offsets.push(bytes.len());
 
-    // Now extract each field's slice
     let mut result = Vec::with_capacity(field_sizes.len());
     let mut fixed_cursor = 0;
     let mut var_idx = 0;
@@ -251,7 +229,7 @@ pub fn decode_container<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::decode::basic::{decode_u64, decode_u32};
+    use crate::decode::basic::{decode_u32, decode_u64};
 
     #[test]
     fn decode_vector_u64() {
@@ -262,7 +240,6 @@ mod tests {
 
     #[test]
     fn decode_list_u64() {
-        // same encoding as vector for fixed-element list
         let bytes = hex::decode("00040000000000000008000000000000000c000000000000").unwrap();
         let result = decode_list_fixed(&bytes, 8, 5, |b| decode_u64(b)).unwrap();
         assert_eq!(result, vec![1024u64, 2048, 3072]);
@@ -272,29 +249,19 @@ mod tests {
     fn decode_bitvector_8_b4() {
         let bytes = hex::decode("b4").unwrap();
         let bits = decode_bitvector(&bytes, 8).unwrap();
-        // 0xb4 = 10110100 → bits LSB first: 0,0,1,0,1,1,0,1
-        assert_eq!(bits, vec![false,false,true,false,true,true,false,true]);
+        assert_eq!(bits, vec![false, false, true, false, true, true, false, true]);
     }
 
     #[test]
     fn decode_bitlist_three_zeros() {
         let bytes = hex::decode("08").unwrap();
-        // 0x08 = 00001000 → bit3 is sentinel → actual bits are bit0,bit1,bit2 = 0,0,0
         let bits = decode_bitlist(&bytes, 100).unwrap();
         assert_eq!(bits, vec![false, false, false]);
     }
 
     #[test]
     fn decode_container_dummy_example() {
-        // ethereum.org: [37,0,0,0, 55,0,0,0, 16,0,0,0, 22,0,0,0, 1,2,3,4]
-        // schema: [Some(4), Some(4), None, Some(4)]
-        let bytes = vec![
-            37u8,0,0,0,
-            55,0,0,0,
-            16,0,0,0,
-            22,0,0,0,
-            1,2,3,4,
-        ];
+        let bytes = vec![37u8, 0, 0, 0, 55, 0, 0, 0, 16, 0, 0, 0, 22, 0, 0, 0, 1, 2, 3, 4];
         let schema = [Some(4), Some(4), None, Some(4)];
         let fields = decode_container(&bytes, &schema).unwrap();
 

@@ -1,4 +1,4 @@
-# rust-light-codecs
+# rust-light-rlp/ssz
 
 Small Rust workspace for Ethereum serialization libraries.
 

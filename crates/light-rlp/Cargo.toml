@@ -1,0 +1,15 @@
+[package]
+name = "light-rlp"
+version = "0.1.0"
+edition = "2024"
+description = "Lightweight RLP encoding and decoding for Ethereum"
+license = "MIT"
+
+[dependencies]
+
+[dev-dependencies]
+hex = "0.4"
+
+[lib]
+name = "light_rlp"
+path = "src/lib.rs"

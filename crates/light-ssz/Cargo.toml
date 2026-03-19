@@ -1,0 +1,16 @@
+[package]
+name = "light-ssz"
+version = "0.1.0"
+edition = "2024"
+description = "Lightweight SSZ encoding and decoding for Ethereum"
+license = "MIT"
+
+[dev-dependencies]
+hex = "0.4"
+
+[dependencies]
+hex = "0.4"
+
+[lib]
+name = "light_ssz"
+path = "src/lib.rs"

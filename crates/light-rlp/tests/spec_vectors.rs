@@ -1,4 +1,4 @@
-use rlp::{decode, encode, Encodable, RlpItem};
+use light_rlp::{decode, encode, Encodable, RlpItem};
 
 #[test]
 fn encode_empty_string() {
